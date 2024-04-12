@@ -2,6 +2,7 @@ package ru.doggohub.model;
 
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @AllArgsConstructor
@@ -14,5 +15,5 @@ public class User {
     private Long id;
     private String name;
     private String email;
-    private List<Long> dogIds;
+    private List<Long> dogIds = new ArrayList<>();
 }

@@ -1,33 +1,38 @@
 package ru.doggohub.repository;
 
-import lombok.AllArgsConstructor;
 import ru.doggohub.model.HealthStory;
+import ru.doggohub.util.DatabaseUtil;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@AllArgsConstructor
 public class HealthStoryRepository {
     private final Connection connection;
+
+    public HealthStoryRepository(Connection connection) {
+        this.connection = connection;
+    }
+
+    public HealthStoryRepository() {
+        try {
+            connection = DatabaseUtil.getConnection();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public List<HealthStory> findByDogId(long dogId) {
         List<HealthStory> storyList = new ArrayList<>();
 
-        String query = "SELECT * FROM schema_name.dog_details " +
-                "WHERE dog_id = ?";
+        String query = "SELECT * FROM schema_name.dog_details " + "WHERE dog_id = ?";
 
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(query);
             preparedStatement.setLong(1, dogId);
             ResultSet resultSet = preparedStatement.executeQuery();
             while (resultSet.next()) {
-                storyList.add(HealthStory.builder()
-                        .id(resultSet.getLong("id"))
-                        .dogId(resultSet.getLong("dog_id"))
-                        .text(resultSet.getString("health_history"))
-                        .visit(resultSet.getDate("visit_time").toLocalDate())
-                        .build());
+                storyList.add(HealthStory.builder().id(resultSet.getLong("id")).dogId(resultSet.getLong("dog_id")).text(resultSet.getString("health_history")).visit(resultSet.getDate("visit_time").toLocalDate()).build());
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -36,8 +41,7 @@ public class HealthStoryRepository {
     }
 
     public HealthStory save(HealthStory healthStory) {
-        String query = "INSERT INTO schema_name.dog_details (dog_id, health_history, visit_time)" +
-                " VALUES (?,?,?)";
+        String query = "INSERT INTO schema_name.dog_details (dog_id, health_history, visit_time)" + " VALUES (?,?,?)";
 
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
@@ -54,14 +58,13 @@ public class HealthStoryRepository {
             try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     long storyId = generatedKeys.getLong(1);
-
-                    return findById(storyId);
+                    healthStory.setId(storyId);
+                    return healthStory;
 
                 } else {
                     throw new SQLException("Ошибка при добавлении новой собаки. ID не сгенерировано");
                 }
-            } catch (
-                    SQLException e) {
+            } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
         } catch (SQLException e) {
@@ -72,23 +75,16 @@ public class HealthStoryRepository {
     public HealthStory findById(long storyId) {
         HealthStory healthStory = null;
 
-        String query = "SELECT * FROM schema_name.dog_details " +
-                "WHERE id = ?";
+        String query = "SELECT * FROM schema_name.dog_details " + "WHERE id = ?";
 
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(query);
             preparedStatement.setLong(1, storyId);
             ResultSet resultSet = preparedStatement.executeQuery();
             if (resultSet.next()) {
-                healthStory = HealthStory.builder()
-                        .id(resultSet.getLong("id"))
-                        .dogId(resultSet.getLong("dog_id"))
-                        .text(resultSet.getString("health_history"))
-                        .visit(resultSet.getDate("visit_time").toLocalDate())
-                        .build();
+                healthStory = HealthStory.builder().id(resultSet.getLong("id")).dogId(resultSet.getLong("dog_id")).text(resultSet.getString("health_history")).visit(resultSet.getDate("visit_time").toLocalDate()).build();
             }
-        } catch (
-                SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         }
         return healthStory;

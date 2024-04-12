@@ -9,6 +9,7 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @Builder
+@EqualsAndHashCode
 public class HealthStoryResponseDto {
     private Long id;
     private Long dogId;

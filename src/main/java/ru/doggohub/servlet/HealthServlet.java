@@ -2,11 +2,13 @@ package ru.doggohub.servlet;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import ru.doggohub.util.LocalDateTypeAdapter;
 import ru.doggohub.dto.health.HealthStoryRequestDto;
 import ru.doggohub.dto.health.HealthStoryResponseDto;
+import ru.doggohub.repository.DogRepository;
+import ru.doggohub.repository.HealthStoryRepository;
 import ru.doggohub.service.health.HealthStoryService;
 import ru.doggohub.service.health.HealthStoryServiceImpl;
+import ru.doggohub.util.LocalDateTypeAdapter;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -24,10 +26,21 @@ import java.util.List;
 
 @WebServlet(urlPatterns = {"/health"})
 public class HealthServlet extends HttpServlet {
-    private final HealthStoryService healthStoryService = new HealthStoryServiceImpl();
+
+    private final HealthStoryService healthStoryService;
     private final Gson gson = new GsonBuilder()
             .registerTypeAdapter(LocalDate.class, new LocalDateTypeAdapter())
             .create();
+
+    public HealthServlet(HealthStoryRepository healthStoryRepository, DogRepository dogRepository) {
+        super();
+        this.healthStoryService = new HealthStoryServiceImpl(healthStoryRepository, dogRepository);
+    }
+
+    public HealthServlet() {
+        super();
+        this.healthStoryService = new HealthStoryServiceImpl(new HealthStoryRepository(), new DogRepository());
+    }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -106,6 +119,7 @@ public class HealthServlet extends HttpServlet {
             long storyId = Long.parseLong(idStoryParam);
             healthStoryService.deleteById(storyId);
 
+            writer.println("История болезни с ID={}, успешно удалены из базы данных");
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
 
         } catch (NumberFormatException e) {

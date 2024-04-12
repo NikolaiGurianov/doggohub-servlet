@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @Setter
 @Builder
 @EqualsAndHashCode
+@ToString
 public class Dog {
     private Long id;
     private String name;

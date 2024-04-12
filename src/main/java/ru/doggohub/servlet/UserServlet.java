@@ -3,7 +3,8 @@ package ru.doggohub.servlet;
 import com.google.gson.Gson;
 import ru.doggohub.dto.user.UserRequestDto;
 import ru.doggohub.dto.user.UserResponseDto;
-import ru.doggohub.exception.ValidationException;
+import ru.doggohub.repository.DogRepository;
+import ru.doggohub.repository.UserRepository;
 import ru.doggohub.service.user.UserService;
 import ru.doggohub.service.user.UserServiceImpl;
 
@@ -22,10 +23,16 @@ import java.util.List;
 
 @WebServlet(urlPatterns = {"/user"})
 public class UserServlet extends HttpServlet {
-    private final UserService userService = new UserServiceImpl();
+    private final UserService userService;
 
     public UserServlet() {
         super();
+        this.userService = new UserServiceImpl(new UserRepository(), new DogRepository());
+    }
+
+    public UserServlet(UserRepository userRepository, DogRepository dogRepository) {
+        super();
+        this.userService = new UserServiceImpl(userRepository, dogRepository);
     }
 
     @Override
@@ -55,7 +62,7 @@ public class UserServlet extends HttpServlet {
 
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            writer.println("При обработке запроса произошла ошибка1: " + e.getMessage());
+            writer.println("При обработке запроса произошла ошибка: " + e.getMessage());
         }
     }
 
@@ -77,25 +84,25 @@ public class UserServlet extends HttpServlet {
         }
     }
 
-    @Override
-    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doPatch(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
 
+        PrintWriter writer = resp.getWriter();
+        String userIdParam = req.getParameter("id");
+
+        if (userIdParam == null) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            writer.println("Параметр id не передан, проверьте запрос");
+            return;
+        }
+
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(req.getInputStream(), StandardCharsets.UTF_8))) {
-            String userIdParam = req.getParameter("id");
-
-            if (userIdParam != null) {
-                long userId = Long.parseLong(userIdParam);
-                UserRequestDto userRequestDto = new Gson().fromJson(reader, UserRequestDto.class);
-                UserResponseDto userResponseDto = userService.updateUser(userRequestDto, userId);
-                String userResponseJson = new Gson().toJson(userResponseDto);
-                resp.getWriter().println(userResponseJson);
-
-            } else {
-                throw new ValidationException("Параметр id не передан, проверьте запрос");
-            }
-
+            long userId = Long.parseLong(userIdParam);
+            UserRequestDto userRequestDto = new Gson().fromJson(reader, UserRequestDto.class);
+            UserResponseDto userResponseDto = userService.updateUser(userRequestDto, userId);
+            String userResponseJson = new Gson().toJson(userResponseDto);
+            resp.getWriter().println(userResponseJson);
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             resp.getWriter().println("При обработке запроса произошла ошибка: " + e.getMessage());
@@ -120,8 +127,11 @@ public class UserServlet extends HttpServlet {
             long userId = Long.parseLong(userIdParam);
             userService.deleteById(userId);
 
+            writer.println("Пользователь с ID={}, успешно удален из базы данных");
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
-
+        } catch (NumberFormatException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            writer.println("Неверный формат ID");
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             resp.getWriter().println("При обработке запроса произошла ошибка: " + e.getMessage());
@@ -130,7 +140,11 @@ public class UserServlet extends HttpServlet {
 
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        super.service(req, resp);
+        if (req.getMethod().equalsIgnoreCase("PATCH")) {
+            doPatch(req, resp);
+        } else {
+            super.service(req, resp);
+        }
     }
 
     @Override

@@ -5,6 +5,8 @@ import ru.doggohub.dto.user.UserRequestDto;
 import ru.doggohub.dto.user.UserResponseDto;
 import ru.doggohub.model.User;
 
+import java.util.ArrayList;
+
 @UtilityClass
 public class UserMapper {
     public User fromDto(UserRequestDto dto) {
@@ -18,7 +20,7 @@ public class UserMapper {
         return UserResponseDto.builder()
                 .id(user.getId())
                 .name(user.getName())
-                .dogs(user.getDogIds())
+                .dogs(user.getDogIds() != null ? user.getDogIds() : new ArrayList<>())
                 .build();
     }
 }
