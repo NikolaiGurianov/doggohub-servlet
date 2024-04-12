@@ -1,15 +1,27 @@
 package ru.doggohub.repository;
 
-import lombok.AllArgsConstructor;
 import ru.doggohub.model.User;
+import ru.doggohub.util.DatabaseUtil;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@AllArgsConstructor
 public class UserRepository {
     private final Connection connection;
+
+    public UserRepository(Connection connection) {
+        this.connection = connection;
+    }
+
+
+    public UserRepository() {
+        try {
+            connection = DatabaseUtil.getConnection();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public List<User> findAll() {
         List<User> users = new ArrayList<>();
@@ -75,8 +87,8 @@ public class UserRepository {
                 if (generatedKeys.next()) {
 
                     long userId = generatedKeys.getLong(1);
-
-                    return findById(userId);
+                    user.setId(userId);
+                    return user;
                 } else {
                     throw new SQLException("Сгенерированный ключ не был получен.");
                 }
@@ -101,7 +113,8 @@ public class UserRepository {
             if (affectedRows == 0) {
                 throw new SQLException("Вставка записи не выполнена, ни одна строка не была изменена.");
             }
-            return findById(user.getId());
+
+            return user;
 
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка базы данных при обновлении пользователя", e);

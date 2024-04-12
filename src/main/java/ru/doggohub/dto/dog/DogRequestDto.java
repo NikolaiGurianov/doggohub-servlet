@@ -1,9 +1,6 @@
 package ru.doggohub.dto.dog;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 import ru.doggohub.model.enums.Breed;
 import ru.doggohub.model.enums.Color;
 import ru.doggohub.model.enums.Gender;
@@ -13,7 +10,9 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
+@Setter
 @ToString
+@Builder
 public class DogRequestDto {
     private String name;
     private LocalDate birthDay;

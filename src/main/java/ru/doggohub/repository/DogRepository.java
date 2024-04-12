@@ -1,18 +1,29 @@
 package ru.doggohub.repository;
 
-import lombok.AllArgsConstructor;
 import ru.doggohub.model.Dog;
 import ru.doggohub.model.enums.Breed;
 import ru.doggohub.model.enums.Color;
 import ru.doggohub.model.enums.Gender;
+import ru.doggohub.util.DatabaseUtil;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@AllArgsConstructor
 public class DogRepository {
     private final Connection connection;
+
+    public DogRepository(Connection connection) {
+        this.connection = connection;
+    }
+
+    public DogRepository() {
+        try {
+            connection = DatabaseUtil.getConnection();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public Dog findById(long id) {
         Dog dog = null;
@@ -36,9 +47,8 @@ public class DogRepository {
                             .ownerId(resultSet.getLong("owner_id"))
                             .build();
                 }
-            } catch (
-                    SQLException e) {
-                throw new RuntimeException("Ошибка базы данных при поиске информации о собаке с ID={}: " + id, e);
+            } catch (SQLException e) {
+                throw new RuntimeException("Ошибка базы данных при поиске информации о собаке с ID ", e);
             }
             return dog;
         } catch (SQLException e) {
@@ -72,7 +82,7 @@ public class DogRepository {
                         .build());
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Ошибка базы данных при поиске информации по владельцу с ID={}: " + ownerId, e);
+            throw new RuntimeException("Ошибка базы данных при поиске информации по владельцу", e);
         }
 
         return dogList;
@@ -100,15 +110,13 @@ public class DogRepository {
             try (ResultSet generatedKeys = insertStatement.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     long dogId = generatedKeys.getLong(1);
-
-                    saveDogOwner(dogId, dog.getOwnerId());
-
-                    return findById(dogId);
-
+                    dog.setId(dogId);
+                    return dog;
                 } else {
                     throw new SQLException("Ошибка при добавлении новой собаки. ID не сгенерировано");
                 }
             } catch (SQLException e) {
+                connection.rollback();
                 throw new RuntimeException(e);
             }
         } catch (SQLException e) {
@@ -158,7 +166,7 @@ public class DogRepository {
             if (affectedRows == 0) {
                 throw new SQLException("Вставка записи не выполнена, ни одна строка не была изменена.");
             }
-            return findById(dog.getId());
+            return dog;
 
 
         } catch (SQLException e) {

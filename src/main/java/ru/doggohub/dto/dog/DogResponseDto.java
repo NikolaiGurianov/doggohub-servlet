@@ -10,9 +10,11 @@ import java.time.LocalDate;
 
 @AllArgsConstructor
 @NoArgsConstructor
+@Getter
 @Setter
 @ToString
 @Builder
+@EqualsAndHashCode
 public class DogResponseDto {
     private Long id;
     private String name;

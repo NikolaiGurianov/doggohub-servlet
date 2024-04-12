@@ -2,11 +2,13 @@ package ru.doggohub.servlet;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import ru.doggohub.util.LocalDateTypeAdapter;
 import ru.doggohub.dto.dog.DogRequestDto;
 import ru.doggohub.dto.dog.DogResponseDto;
+import ru.doggohub.repository.DogRepository;
+import ru.doggohub.repository.UserRepository;
 import ru.doggohub.service.dog.DogService;
 import ru.doggohub.service.dog.DogServiceImpl;
+import ru.doggohub.util.LocalDateTypeAdapter;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -24,16 +26,20 @@ import java.util.List;
 
 @WebServlet(urlPatterns = {"/dog"})
 public class DogServlet extends HttpServlet {
-    private final DogService dogService = new DogServiceImpl();
-
+    private final DogService dogService;
     private final Gson gson = new GsonBuilder()
             .registerTypeAdapter(LocalDate.class, new LocalDateTypeAdapter())
             .create();
 
     public DogServlet() {
         super();
+        this.dogService = new DogServiceImpl(new UserRepository(), new DogRepository());
     }
 
+    public DogServlet(UserRepository userRepository, DogRepository dogRepository) {
+        super();
+        this.dogService = new DogServiceImpl(userRepository, dogRepository);
+    }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -94,22 +100,19 @@ public class DogServlet extends HttpServlet {
         }
     }
 
-    @Override
-    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doPatch(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
 
         PrintWriter writer = resp.getWriter();
+        String dogIdParam = req.getParameter("id");
 
-
+        if (dogIdParam == null) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            writer.println("Параметр id не передан, проверьте запрос");
+            return;
+        }
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(req.getInputStream(), StandardCharsets.UTF_8))) {
-            String dogIdParam = req.getParameter("id");
-
-            if (dogIdParam == null) {
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                writer.println("Не указан ID собаки");
-                return;
-            }
 
             long dogId = Long.parseLong(dogIdParam);
             DogRequestDto dogRequestDto = gson.fromJson(reader, DogRequestDto.class);
@@ -117,11 +120,6 @@ public class DogServlet extends HttpServlet {
             String jsonResponse = gson.toJson(dogResponseDto);
 
             writer.println(jsonResponse);
-
-        } catch (NumberFormatException e) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            writer.println("Неверный формат ID");
-
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             writer.println("При обработке запроса произошла ошибка: " + e.getMessage());
@@ -146,6 +144,7 @@ public class DogServlet extends HttpServlet {
             long dogId = Long.parseLong(dogIdString);
             dogService.deleteById(dogId);
 
+            writer.println("Собака с ID={}, успешно удалены из базы данных");
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
 
         } catch (NumberFormatException e) {
@@ -165,8 +164,13 @@ public class DogServlet extends HttpServlet {
 
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        super.service(req, resp);
+        if (req.getMethod().equalsIgnoreCase("PATCH")) {
+            doPatch(req, resp);
+        } else {
+            super.service(req, resp);
+        }
     }
+
 
     @Override
     public void destroy() {
