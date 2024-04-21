@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+// молодец, хороший проект
 class DogServletTest {
     @Mock
     private HttpServletRequest request;
